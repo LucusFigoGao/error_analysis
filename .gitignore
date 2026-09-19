@@ -1,11 +1,12 @@
 # --- 故障分析的样本数据 ---
-examples
+cases
 
 # --- 编译结果 ---
 target
 
 # --- skill 缓存 ---
-workspace/.skills_cache
+workspace/.skills-cache
 
 # --- 本地日志 ---
 workspace/local
+workspace/reports
