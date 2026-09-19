@@ -231,11 +231,9 @@ Netty started on port <你的端口>
 
 ### AgentScope Studio 上报
 
-比赛要求 Java 高代码智能体**必须引 studio 扩展依赖**，并在 `StudioManager` 初始化时
-配置 Project 名称和监控地址。
+比赛要求 Java 高代码智能体**必须引 studio 扩展依赖**，并在 `StudioManager` 初始化时配置 Project 名称和监控地址。
 
-实现分两处：`config/StudioConfig.java` 负责初始化并产出 `StudioMessageHook`，
-`AgentConfig` 通过 `HarnessAgent.hook(...)` 把它挂到 agent 上。
+实现分两处：`config/StudioConfig.java` 负责初始化并产出 `StudioMessageHook`，`AgentConfig` 通过 `HarnessAgent.hook(...)` 把它挂到 agent 上。
 
 ```yaml
 agentscope:
@@ -257,15 +255,11 @@ pom 里对应的依赖（包名是 `io.agentscope.core.studio`，但不在 core 
 
 三点注意：
 
-- **`project-name` 必须和平台「高代码智能体中心」登记的智能体名称一模一样**，
-  格式参考文档示例 `team1-example_agent1`。对不上的话上报数据关联不到你的智能体，
-  表现是「服务跑得好好的，Studio 里什么都没有」。
+- **`project-name` 必须和平台「高代码智能体中心」登记的智能体名称一模一样**，格式参考文档示例 `team1-example_agent1`。对不上的话上报数据关联不到你的智能体，表现是「服务跑得好好的，Studio 里什么都没有」。
 - **文档里监控地址有矛盾**：红字写 `:9001`，代码示例默认值是 `:9000`。部署前确认一个。
-- Studio 初始化失败只打 error 返回 null，**不会让 agent 起不来**。
-  这是故意的（监控通道不该阻塞主流程），但代价是失败比较安静，所以要靠上面那两行日志确认。
+- Studio 初始化失败只打 error 返回 null，**不会让 agent 起不来**。这是故意的（监控通道不该阻塞主流程），但代价是失败比较安静，所以要靠上面那两行日志确认。
 
-本地开发默认 `enabled: false`。真想在本地试，临时覆盖即可，
-但本机多半连不上 `81.89.188.105`（和内网模型地址同属内网段），会看到初始化失败，属正常：
+本地开发默认 `enabled: false`。真想在本地试，临时覆盖即可，但本机多半连不上 `81.89.188.105`（和内网模型地址同属内网段），会看到初始化失败，属正常：
 
 ```bash
 mvn spring-boot:run -Dspring-boot.run.arguments="\
@@ -276,17 +270,14 @@ mvn spring-boot:run -Dspring-boot.run.arguments="\
 
 ### 关于 nacos
 
-不需要。平台已改成 URL 直接绑定后端，服务发现关掉了；配置中心只是可选便利，
-自己的 `application.yml` 够用，少一个启动期外部依赖更稳。
-比赛方明确要求从 nacos 拉配置时再加，届时问清 data-id。
+不需要。平台已改成 URL 直接绑定后端，服务发现关掉了；配置中心只是可选便利，自己的 `application.yml` 够用，少一个启动期外部依赖更稳。比赛方明确要求从 nacos 拉配置时再加，届时问清 data-id。
 
 也不要用 `bootstrap.yml` + `bootstrap-nacos.yml` 那套，那是 Spring Cloud 为了在主配置
 加载前先连 nacos 的机制，不用 nacos 就用普通 profile，还能省掉 spring-cloud 依赖。
 
 ### API key
 
-不要写进任何配置文件。本地走 `DASHSCOPE_API_KEY` 环境变量，
-服务器的内网端点不校验 key（别人配置里是 `your-api-key` 占位符），给个非空值即可。
+不要写进任何配置文件。本地走 `DASHSCOPE_API_KEY` 环境变量，服务器的内网端点不校验 key（别人配置里是 `your-api-key` 占位符），给个非空值即可。
 
 ## 设计说明
 
@@ -361,13 +352,10 @@ Studio 的处理正相反（失败不阻塞启动），因为监控通道挂了�
 
 ## 待办
 
-- [ ] 工具调用序列里第 10 到 15 步模型绕过 skill 机制用 `read_file` / `glob_files` / `execute`
-      自己翻文件系统。两个修法：收敛内置工具白名单，或把 playbook 从 `references/`
-      提成独立 skill 让它能被直接加载。`execute` 能跑 shell，交付前要考虑关掉。
+- [ ] 工具调用序列里第 10 到 15 步模型绕过 skill 机制用 `read_file` / `glob_files` / `execute` 自己翻文件系统。两个修法：收敛内置工具白名单，或把 playbook 从 `references/` 提成独立 skill 让它能被直接加载。`execute` 能跑 shell，交付前要考虑关掉。
 - [ ] 加 `load_case` 工具一次返回全部材料，避免模型只读一份就开始推理
 - [ ] 给 `write_report` 加门禁：根因待验证但没调过 `parse_exception` 就拒绝写入
 - [ ] 证据引用校验（verify_citations），防止报告出现没有出处的数字
 - [ ] 补 mq-consumer、cache-redis、gateway-timeout 等 playbook
-- [ ] 建评测集：每个案例标注（根因组件、根因类型、关键证据集），
-      做消融对比「有无 playbook」的根因定位准确率
+- [ ] 建评测集：每个案例标注（根因组件、根因类型、关键证据集），做消融对比「有无 playbook」的根因定位准确率
 - [ ] 工具注册到信雅达平台插件（同插件内工具必须同域名，本项目单服务天然满足）
