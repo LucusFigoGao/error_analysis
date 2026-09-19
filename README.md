@@ -1,9 +1,6 @@
 # RCA Agent
 
-读运维故障材料（告警、日志、工单、交易量报表），定位根因，输出带证据清单的分析报告。
-
-基于 AgentScope Java 2.x 的 `HarnessAgent`。核心设计是**三层 skill + 确定性 tool**：
-判读知识写在 markdown 里按需加载，算术核对和参数抽取交给代码，推理和表达留给模型。
+读运维故障材料（告警、日志、工单、交易量报表），定位根因，输出带证据清单的分析报告。基于 AgentScope Java 2.x 的 `HarnessAgent`。核心设计是**三层 skill + 确定性 tool**：判读知识写在 markdown 里按需加载，算术核对和参数抽取交给代码，推理和表达留给模型。
 
 ## 快速开始
 
@@ -28,8 +25,8 @@ chmod +x rca.sh
 
 环境变量覆盖：`RCA_HOST` / `RCA_PREFIX` / `RCA_USER_ID`。
 
-脚本只依赖 bash、curl、sed，服务器上没有 jq 和 python 也能跑。
-跑完会自检四个关键工具有没有被调到，**`load_skill_through_path` 缺席就说明 skill 没生效**。
+- 脚本只依赖 bash、curl、sed
+- 跑完会自检四个关键工具有没有被调到，**`load_skill_through_path` 缺席就说明 skill 没生效**。
 
 ## 目录结构
 
