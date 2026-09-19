@@ -11,7 +11,7 @@
 set -uo pipefail
 
 HOST="${RCA_HOST:-http://localhost:9001}"
-PREFIX="${RCA_PREFIX:-/wjq4709098/api}"   # 要与 application.yml 的 agui.path-prefix 一致
+PREFIX="${RCA_PREFIX:-/wjq4709698/api}"   # 要与 application.yml 的 agui.path-prefix 一致
 USER_ID="${RCA_USER_ID:-local}"
 
 MODE="pretty"
