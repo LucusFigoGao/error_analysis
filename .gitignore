@@ -3,3 +3,9 @@ examples
 
 # --- 编译结果 ---
 target
+
+# --- skill 缓存 ---
+workspace/.skills_cache
+
+# --- 本地日志 ---
+workspace/local
