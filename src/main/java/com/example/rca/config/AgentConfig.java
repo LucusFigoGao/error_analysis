@@ -6,12 +6,14 @@ import com.example.rca.tools.ReportTools;
 import io.agentscope.core.model.ChatModelBase;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.state.JsonFileAgentStateStore;
+import io.agentscope.core.studio.StudioMessageHook;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -69,7 +71,7 @@ public class AgentConfig {
                 .apiKey(apiKey)
                 .modelName(modelName)
                 .enableThinking(enableThinking)
-                .defaultOptions(options())
+                .defaultOptions(dashscopeOptions())
                 .build();
     }
 
@@ -88,14 +90,28 @@ public class AgentConfig {
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(modelName)
-                .generateOptions(options())
+                .generateOptions(openAiOptions())
                 .build();
     }
 
-    private GenerateOptions options() {
-        GenerateOptions.Builder b =
-                GenerateOptions.builder().temperature(temperature).topP(topP).maxTokens(maxTokens);
-        // OpenAI 兼容通道没有 enableThinking 开关，靠 thinkingBudget=0 关掉思考
+    private GenerateOptions.Builder baseOptions() {
+        return GenerateOptions.builder()
+                .temperature(temperature)
+                .topP(topP)
+                .maxTokens(maxTokens);
+    }
+
+    /**
+     * DashScope 的思考开关在 model builder 上（enableThinking），不能在 options 里设 thinkingBudget。
+     * 设了但没开 enableThinking，DashScope 会直接拒绝请求。
+     */
+    private GenerateOptions dashscopeOptions() {
+        return baseOptions().build();
+    }
+
+    /** OpenAI 兼容通道没有 enableThinking 开关，靠 thinkingBudget=0 关闭思考。 */
+    private GenerateOptions openAiOptions() {
+        GenerateOptions.Builder b = baseOptions();
         if (!enableThinking) {
             b.thinkingBudget(0);
         }
@@ -152,9 +168,19 @@ public class AgentConfig {
         return toolkit;
     }
 
+    /**
+     * 用 ObjectProvider 取 Studio 钩子：StudioConfig 在未启用时返回 null，
+     * 直接按类型注入会失败。同时这个参数保证了 studioMessageHook 一定在 agent 之前创建，
+     * 否则钩子挂不上去，而且日志看起来一切正常，非常难排查。
+     */
     @Bean
-    public HarnessAgent agent(ChatModelBase chatModel, Toolkit rcaToolkit, Path workspace) {
-        return HarnessAgent.builder()
+    public HarnessAgent agent(
+            ChatModelBase chatModel,
+            Toolkit rcaToolkit,
+            Path workspace,
+            ObjectProvider<StudioMessageHook> studioHookProvider) {
+
+        HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(agentName)
                 .description("运维故障根因分析 agent")
                 .model(chatModel)
@@ -170,7 +196,14 @@ public class AgentConfig {
                                 .triggerMessages(40)
                                 .keepMessages(15)
                                 .flushBeforeCompact(true)
-                                .build())
-                .build();
+                                .build());
+
+        StudioMessageHook hook = studioHookProvider.getIfAvailable();
+        if (hook != null) {
+            builder.hook(hook);
+            log.info("【Agent】已挂载 Studio 上报钩子");
+        }
+
+        return builder.build();
     }
 }
