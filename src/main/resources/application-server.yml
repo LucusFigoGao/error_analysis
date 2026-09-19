@@ -1,0 +1,21 @@
+# 服务器部署：内网 OpenAI 兼容端点，绝对路径
+#
+# 三个值必须先向比赛方确认，下面填的是从别人配置里看到的样例：
+#   server.port                    9022默认
+#   agentscope.model.base-url      内网模型网关
+#   agentscope.model.name          内网部署的模型，和本地那个不是同一个
+
+server:
+  port: 9022
+
+agentscope:
+  model:
+    provider: openai
+    base-url: http://172.1.0.134:8003/v1
+    api-key: your-api-key
+    name: Qwen3.6-35B-A3B
+  # 绝对路径：java -jar 的工作目录不一定是你以为的那个
+  workspace: /opt/rca/workspace
+
+rca:
+  case-root: /opt/rca/cases

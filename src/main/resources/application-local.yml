@@ -1,0 +1,13 @@
+# 本地开发：DashScope 直连，相对路径
+server:
+  port: 9001
+
+agentscope:
+  model:
+    provider: dashscope
+    api-key: ${DASHSCOPE_API_KEY}
+    name: qwen3.6-27b
+  workspace: ./workspace
+
+rca:
+  case-root: ./cases

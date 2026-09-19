@@ -1,40 +1,33 @@
-server:
-  port: 9001
+# ============================================================
+# 公共配置。环境相关的东西（端口、模型通道、路径）放 profile 里：
+#   application-local.yml    本地开发，DashScope 直连
+#   application-server.yml   服务器部署，内网 OpenAI 兼容端点
+# 切换：
+#   mvn spring-boot:run                                       -> local
+#   java -jar rca-agent.jar --spring.profiles.active=server   -> server
+# ============================================================
 
 spring:
   application:
     name: rca-agent
+  profiles:
+    active: local
 
 agentscope:
   model:
-    # dashscope = 直连（本地用）
-    # openai = OpenAI 兼容端点（服务器用）
-    provider: dashscope
-    api-key: ${DASHSCOPE_API_KEY}
-    name: qwen3.6-27b
-    
-    # provider=openai 时必填，例如 http://<内网地址>:<端口>/v1
-    base-url: ""
-    temperature: 0.2    # 故障定位要稳定复现，不要发散
+    temperature: 0.2
     top-p: 0.8
     max-tokens: 16384
     enable-thinking: false
   agent:
     name: RcaAgent
+    # 工具调用轮次上限
     max-iters: 40
-  
-  # AGENTS.md 与 skills/ 都在这个目录下
-  workspace: ./workspace
 
 agui:
-  path-prefix: /wjq4709098/api
-  
-  # Harness 按 userId 做用户级隔离；平台请求里带 userId 时会覆盖这个默认值
+  # TODO 换成比赛方分配给你的标识。
+  path-prefix: /wjq4709698/api
   default-user-id: local
-
-rca:
-  # 故障案例材料根目录
-  case-root: ./cases
 
 logging:
   level:
