@@ -15,6 +15,12 @@ agentscope:
   # AGENTS.md 与 skills/ 都在这个目录下
   workspace: ./workspace
 
+agui:
+  path-prefix: /wjq4709098/api
+  
+  # Harness 按 userId 做用户级隔离；平台请求里带 userId 时会覆盖这个默认值
+  default-user-id: local
+
 rca:
   # 故障案例材料根目录
   case-root: ./cases
