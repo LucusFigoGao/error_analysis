@@ -1,13 +1,13 @@
 # RCA Agent
 
 读运维故障材料（告警、日志、工单、交易量报表），定位根因，输出分析报告。
-基于 AgentScope Java 2.x 的 `HarnessAgent`，模型走 DashScope 的 qwen-max。
+基于 AgentScope Java 2.x 的 `HarnessAgent`，模型走 DashScope 的 qwen3.6-27b
 
 ## 跑起来
 
 ```bash
 export DASHSCOPE_API_KEY=sk-xxxx
-mvn spring-boot:run
+mvn clean spring-boot:run
 ```
 
 另开一个终端：
