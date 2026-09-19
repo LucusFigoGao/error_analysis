@@ -6,12 +6,23 @@ spring:
     name: rca-agent
 
 agentscope:
-  dashscope:
-    # 从环境变量读，不要把 key 写进配置文件提交到 git
+  model:
+    # dashscope = 直连（本地用）
+    # openai = OpenAI 兼容端点（服务器用）
+    provider: dashscope
     api-key: ${DASHSCOPE_API_KEY}
-    model-name: qwen3.6-27b
+    name: qwen3.6-27b
+    
+    # provider=openai 时必填，例如 http://<内网地址>:<端口>/v1
+    base-url: ""
+    temperature: 0.2    # 故障定位要稳定复现，不要发散
+    top-p: 0.8
+    max-tokens: 16384
+    enable-thinking: false
   agent:
     name: RcaAgent
+    max-iters: 40
+  
   # AGENTS.md 与 skills/ 都在这个目录下
   workspace: ./workspace
 

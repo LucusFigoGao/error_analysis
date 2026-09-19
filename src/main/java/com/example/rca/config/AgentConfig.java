@@ -3,28 +3,54 @@ package com.example.rca.config;
 import com.example.rca.tools.AnalysisTools;
 import com.example.rca.tools.DocumentTools;
 import com.example.rca.tools.ReportTools;
+import io.agentscope.core.model.ChatModelBase;
 import io.agentscope.core.model.GenerateOptions;
+import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+@Slf4j
 @Configuration
 public class AgentConfig {
 
-    @Value("${agentscope.dashscope.api-key}")
+    @Value("${agentscope.model.api-key}")
     private String apiKey;
 
-    @Value("${agentscope.dashscope.model-name:qwen3.6-27b}")
+    @Value("${agentscope.model.name}")
     private String modelName;
+
+    @Value("${agentscope.model.base-url:}")
+    private String baseUrl;
+
+    @Value("${agentscope.model.temperature:0.2}")
+    private Double temperature;
+
+    @Value("${agentscope.model.top-p:0.8}")
+    private Double topP;
+
+    @Value("${agentscope.model.max-tokens:16384}")
+    private Integer maxTokens;
+
+    @Value("${agentscope.model.enable-thinking:false}")
+    private boolean enableThinking;
 
     @Value("${agentscope.agent.name:RcaAgent}")
     private String agentName;
+
+    @Value("${agentscope.agent.max-iters:40}")
+    private int maxIters;
 
     @Value("${agentscope.workspace:./workspace}")
     private String workspacePath;
@@ -32,50 +58,119 @@ public class AgentConfig {
     @Value("${rca.case-root:./cases}")
     private String caseRoot;
 
-    /**
-     * qwen3.6-27b。temperature 压到 0.2：故障定位要的是稳定复现，不是发散。
-     */
-    @Bean
-    public DashScopeChatModel chatModel() {
-        GenerateOptions options = GenerateOptions.builder()
-                .temperature(0.2)
-                .topP(0.8)
-                .maxTokens(8192)
-                .build();
+    // ==================== 模型 ====================
 
+    /** 直连 DashScope。本地开发用这个，只要一个 API key。 */
+    @Bean
+    @ConditionalOnProperty(name = "agentscope.model.provider", havingValue = "dashscope")
+    public ChatModelBase dashscopeModel() {
+        log.info("【模型】DashScope 直连, model={}", modelName);
         return DashScopeChatModel.builder()
                 .apiKey(apiKey)
                 .modelName(modelName)
-                .enableThinking(false)
-                .defaultOptions(options)
+                .enableThinking(enableThinking)
+                .defaultOptions(options())
                 .build();
     }
 
+    /** OpenAI 兼容端点。部署到服务器走这个，base-url 指向内网地址。 */
+    @Bean
+    @ConditionalOnProperty(
+            name = "agentscope.model.provider",
+            havingValue = "openai",
+            matchIfMissing = true)
+    public ChatModelBase openAiCompatibleModel() {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalStateException("provider=openai 时必须配置 agentscope.model.base-url");
+        }
+        log.info("【模型】OpenAI 兼容端点 {}, model={}", baseUrl, modelName);
+        return OpenAIChatModel.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .modelName(modelName)
+                .generateOptions(options())
+                .build();
+    }
+
+    private GenerateOptions options() {
+        GenerateOptions.Builder b =
+                GenerateOptions.builder().temperature(temperature).topP(topP).maxTokens(maxTokens);
+        // OpenAI 兼容通道没有 enableThinking 开关，靠 thinkingBudget=0 关掉思考
+        if (!enableThinking) {
+            b.thinkingBudget(0);
+        }
+        return b.build();
+    }
+
+    // ==================== 工作区 ====================
+
+    /**
+     * 工作区解析成绝对路径，并在启动时校验关键内容。
+     *
+     * <p>AGENTS.md 或 skills/ 缺失时 agent 照样能起来，但流程约束和判读手册全没了，
+     * 报告会安静退化成泛泛而谈，事后极难排查。所以这里直接启动失败。
+     */
+    @Bean
+    public Path workspace() {
+        Path ws = Paths.get(workspacePath).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(ws.resolve("reports"));
+            Files.createDirectories(ws.resolve("state"));
+        } catch (Exception e) {
+            throw new IllegalStateException("工作区目录创建失败: " + ws, e);
+        }
+
+        Path agents = ws.resolve("AGENTS.md");
+        Path skills = ws.resolve("skills");
+        if (!Files.isRegularFile(agents)) {
+            throw new IllegalStateException(
+                    "缺少 " + agents + "，agent 会失去全部流程约束。确认工作区目录已随程序一起部署。");
+        }
+        if (!Files.isDirectory(skills)) {
+            throw new IllegalStateException("缺少 " + skills + "，agent 会失去全部判读手册。");
+        }
+
+        long count = -1;
+        try (var s = Files.list(skills)) {
+            count = s.filter(Files::isDirectory).count();
+        } catch (Exception ignored) {
+        }
+        log.info("【工作区】{} (skills: {} 个)", ws, count);
+        return ws;
+    }
+
+    // ==================== 工具与 Agent ====================
+
     @Bean
     public Toolkit rcaToolkit() {
+        Path cases = Paths.get(caseRoot).toAbsolutePath().normalize();
+        log.info("【案例目录】{}", cases);
         Toolkit toolkit = new Toolkit();
-        toolkit.registerTool(new DocumentTools(caseRoot));
-        toolkit.registerTool(new AnalysisTools(caseRoot));
+        toolkit.registerTool(new DocumentTools(cases.toString()));
+        toolkit.registerTool(new AnalysisTools(cases.toString()));
         toolkit.registerTool(new ReportTools(workspacePath));
         return toolkit;
     }
 
-    /**
-     * 关键：一定要 .workspace(...)。
-     * workspace 下的 AGENTS.md 会被自动注入系统提示，skills/ 下的 skill 无需注册即生效，
-     * 模型先只看到各 skill 的 description，需要时自己调 load_skill_through_path 拉全文。
-     */
     @Bean
-    public HarnessAgent agent(DashScopeChatModel chatModel, Toolkit rcaToolkit) {
-        Path workspace = Paths.get(workspacePath).toAbsolutePath().normalize();
-
+    public HarnessAgent agent(ChatModelBase chatModel, Toolkit rcaToolkit, Path workspace) {
         return HarnessAgent.builder()
                 .name(agentName)
                 .description("运维故障根因分析 agent")
                 .model(chatModel)
                 .toolkit(rcaToolkit)
+                // workspace 下的 AGENTS.md 自动注入系统提示，skills/ 放好即生效
                 .workspace(workspace)
-                .maxIters(40)
+                .maxIters(maxIters)
+                // 同 sessionId 跨进程恢复，重跑同一个案例不用从头来
+                .stateStore(new JsonFileAgentStateStore(workspace.resolve("state")))
+                // 一次分析几十轮工具调用，不压缩会撑爆上下文
+                .compaction(
+                        CompactionConfig.builder()
+                                .triggerMessages(40)
+                                .keepMessages(15)
+                                .flushBeforeCompact(true)
+                                .build())
                 .build();
     }
 }
