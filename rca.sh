@@ -10,8 +10,8 @@
 # 环境变量可覆盖：RCA_HOST / RCA_PREFIX / RCA_USER_ID
 set -uo pipefail
 
-HOST="${RCA_HOST:-http://localhost:9001}"
-PREFIX="${RCA_PREFIX:-/wjq4709698/api}"   # 要与 application.yml 的 agui.path-prefix 一致
+HOST="${RCA_HOST:-http://localhost:9022}"
+PREFIX="${RCA_PREFIX:-/wjq4709698/api}"
 USER_ID="${RCA_USER_ID:-local}"
 
 MODE="pretty"

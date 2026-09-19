@@ -27,7 +27,7 @@ agentscope:
 agui:
   # TODO 换成比赛方分配给你的标识。
   path-prefix: /wjq4709698/api
-  default-user-id: local
+  default-user-id: user_wjq
 
 logging:
   level:

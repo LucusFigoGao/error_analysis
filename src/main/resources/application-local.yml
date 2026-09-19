@@ -1,6 +1,6 @@
 # 本地开发：DashScope 直连，相对路径
 server:
-  port: 9001
+  port: 9022
 
 agentscope:
   model:
