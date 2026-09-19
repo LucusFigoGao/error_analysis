@@ -9,4 +9,5 @@ workspace/.skills-cache
 
 # --- 本地日志 ---
 workspace/local
+workspace/state
 workspace/reports
