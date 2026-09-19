@@ -39,7 +39,7 @@
             <version>${agentscope.version}</version>
         </dependency>
 
-        <!-- 比赛要求：Java 高代码智能体必须引 studio 扩展依赖 -->
+        <!--Java 高代码智能体必须引 studio 扩展依赖 -->
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-studio</artifactId>
