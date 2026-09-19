@@ -32,10 +32,17 @@
             <version>${agentscope.version}</version>
         </dependency>
 
-        <!-- DashScope 模型扩展：v2 把各家 ChatModel 从 core 挪出来了，必须单独引 -->
+        <!-- DashScope 模型实现 -->
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-model-dashscope</artifactId>
+            <version>${agentscope.version}</version>
+        </dependency>
+
+        <!-- OpenAI 兼容端点，server profile 用 -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-openai</artifactId>
             <version>${agentscope.version}</version>
         </dependency>
 
